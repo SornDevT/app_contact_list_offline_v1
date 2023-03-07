@@ -1,3 +1,4 @@
+import 'info.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -38,38 +39,67 @@ class _HomePageState extends State<HomePage> {
           itemBuilder: (context, index) {
             final currentItem = _items[index];
             return Card(
-              margin: const EdgeInsets.all(10),
-              child: ListTile(
-                title: Text(currentItem['name']),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('ທີ່ຢູ່: ບ. ໜອງແມງດາ ມ. ໄຊ ຂ. ອຸດົມໄຊ'),
-                    Text('ເບີໂທ: 020 2233445566'),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        print('Edit data');
-                      },
-                      icon: const Icon(Icons.edit),
+                margin: const EdgeInsets.all(10),
+                child: InkWell(
+                  onTap: () {
+                    // print(currentItem['key']);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InfoPage(
+                          contactID: currentItem['key'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: ListTile(
+                    title:
+                        //Container(
+                        // child:
+                        Row(
+                      children: [
+                        currentItem['gender'] == 'male'
+                            ? Text('ທ່ານ ')
+                            : Text('ທ່ານ ນ '),
+                        Text(currentItem['name']),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Text(currentItem['lastname']),
+                      ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        print('Delete Data');
-                      },
-                      icon: const Icon(Icons.delete),
+                    // ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ທີ່ຢູ່: ' + currentItem['address']),
+                        Text('ເບີໂທ: ' + currentItem['tel']),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            _showForm(context, currentItem['key']);
+                            // print('Edit data');
+                          },
+                          icon: const Icon(Icons.edit),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            _deleteItem(currentItem['key']);
+                            //print('Delete Data');
+                          },
+                          icon: const Icon(Icons.delete),
+                        ),
+                      ],
+                    ),
+                  ),
+                ));
           }),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(context),
+        onPressed: () => _showForm(context, null),
         child: Icon(Icons.add),
       ),
     );
@@ -79,6 +109,18 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _createItem(Map<String, dynamic> newItem) async {
     await _contactBox.add(newItem);
+    _refreshItem();
+  }
+
+  /// function ອັບເດດຂໍ້ມູນ
+  Future<void> _updateItem(int itemKey, Map<String, dynamic> updateItem) async {
+    await _contactBox.put(itemKey, updateItem);
+    _refreshItem();
+  }
+
+  /// function ລຶບຂໍ້ມູນ
+  Future<void> _deleteItem(int itemKey) async {
+    await _contactBox.delete(itemKey);
     _refreshItem();
   }
 
@@ -104,7 +146,27 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _showForm(BuildContext context) {
+  void _showForm(BuildContext context, int? itemKey) {
+    print(itemKey);
+
+    /// ນຳ itemkey ໄດຶງຂໍ້ມູນ
+    ///
+    if (itemKey != null) {
+      final existingItem =
+          _items.firstWhere((element) => element['key'] == itemKey);
+      _nameController.text = existingItem['name'];
+      _lastnameController.text = existingItem['lastname'];
+      _genderController.text = existingItem['gender'];
+      _addressController.text = existingItem['address'];
+      _telController.text = existingItem['tel'];
+    } else {
+      _nameController.text = '';
+      _lastnameController.text = '';
+      _genderController.text = '';
+      _addressController.text = '';
+      _telController.text = '';
+    }
+
     showModalBottomSheet(
       elevation: 5,
       isScrollControlled: true,
@@ -168,13 +230,25 @@ class _HomePageState extends State<HomePage> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      _createItem({
-                        "name": _nameController.text,
-                        "lastname": _lastnameController.text,
-                        "gender": _genderController.text,
-                        "address": _addressController.text,
-                        "tel": _telController.text,
-                      });
+                      if (itemKey == null) {
+                        // ເພີ່ມຂໍ້ມູນໃໝ່
+                        _createItem({
+                          "name": _nameController.text,
+                          "lastname": _lastnameController.text,
+                          "gender": _genderController.text,
+                          "address": _addressController.text,
+                          "tel": _telController.text,
+                        });
+                      } else {
+                        // ອັບເດດຂໍ້ມູນ
+                        _updateItem(itemKey, {
+                          "name": _nameController.text,
+                          "lastname": _lastnameController.text,
+                          "gender": _genderController.text,
+                          "address": _addressController.text,
+                          "tel": _telController.text,
+                        });
+                      }
 
                       // ທຳການເຄຼຍຟອມ
 
@@ -189,7 +263,7 @@ class _HomePageState extends State<HomePage> {
 
                       ///
                     },
-                    child: Text('ສ້າງໃໝ່'),
+                    child: Text(itemKey == null ? 'ສ້າງໃໝ່' : 'ອັບເດດ'),
                   ),
                   const SizedBox(
                     height: 20,
